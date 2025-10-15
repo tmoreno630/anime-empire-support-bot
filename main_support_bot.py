@@ -14,6 +14,8 @@ from outlook_email_handler import OutlookEmailHandler
 from shopify_integration import ShopifyIntegration
 from customer_support_agent import CustomerSupportAgent
 from slack_notifier import SlackNotifier
+from daily_summary import DailySummary
+import pytz
 
 class SupportBot:
     def __init__(self, config: Dict):
@@ -40,6 +42,15 @@ class SupportBot:
         self.slack = SlackNotifier(slack_url) if slack_url else None
 
         self.check_interval = config.get('check_interval_minutes', 5)
+
+        # Daily summary configuration
+        self.summary_email = config.get('summary_email')
+        self.summary_hour = config.get('summary_hour', 8)  # 8 AM
+        self.summary_timezone = pytz.timezone(config.get('summary_timezone', 'America/Chicago'))  # CST
+        self.last_summary_date = None
+
+        # Initialize daily summary
+        self.daily_summary = DailySummary(self.db_path, self.email_handler) if self.summary_email else None
 
         self._init_database()
 
@@ -261,6 +272,35 @@ class SupportBot:
 
         print(f"\n✅ Processed {processed}/{len(emails)} emails")
 
+    def check_and_send_daily_summary(self):
+        """Check if it's time to send daily summary and send if needed"""
+        if not self.daily_summary or not self.summary_email:
+            return
+
+        # Get current time in configured timezone
+        now = datetime.now(self.summary_timezone)
+        current_date = now.date()
+        current_hour = now.hour
+
+        # Check if we should send summary
+        # Send at configured hour, but only once per day
+        if current_hour == self.summary_hour and self.last_summary_date != current_date:
+            print(f"\n📊 Sending daily summary to {self.summary_email}...")
+            try:
+                success = self.daily_summary.send_daily_summary(self.summary_email)
+                if success:
+                    self.last_summary_date = current_date
+                    print("✅ Daily summary sent successfully")
+                else:
+                    print("❌ Failed to send daily summary")
+            except Exception as e:
+                print(f"❌ Error sending daily summary: {e}")
+                if self.slack:
+                    self.slack.notify_error(
+                        error_message=str(e),
+                        context="Daily summary error"
+                    )
+
     def run_continuous(self):
         """Run bot continuously with configured interval"""
         print("="*60)
@@ -272,6 +312,7 @@ class SupportBot:
         while True:
             try:
                 self.run_once()
+                self.check_and_send_daily_summary()
                 print(f"\n💤 Sleeping for {self.check_interval} minutes...")
                 time.sleep(self.check_interval * 60)
 
@@ -301,7 +342,10 @@ def main():
         'anthropic_api_key': os.getenv('ANTHROPIC_API_KEY'),
         'slack_webhook_url': os.getenv('SLACK_WEBHOOK_URL'),
         'db_path': os.getenv('DB_PATH', 'support_bot.db'),
-        'check_interval_minutes': int(os.getenv('CHECK_INTERVAL_MINUTES', '5'))
+        'check_interval_minutes': int(os.getenv('CHECK_INTERVAL_MINUTES', '5')),
+        'summary_email': os.getenv('SUMMARY_EMAIL'),
+        'summary_hour': int(os.getenv('SUMMARY_HOUR', '8')),
+        'summary_timezone': os.getenv('SUMMARY_TIMEZONE', 'America/Chicago')
     }
 
     required = ['outlook_client_id', 'outlook_client_secret', 'outlook_tenant_id',
