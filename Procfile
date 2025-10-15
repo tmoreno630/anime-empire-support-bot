@@ -1,0 +1,1 @@
+worker: python main_support_bot.py
