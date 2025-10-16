@@ -92,6 +92,46 @@ RESPONSE FORMAT:
 
 Remember: You represent the brand. Every interaction should leave the customer feeling valued and cared for, even when you cannot fulfill their exact request. Be genuinely helpful, kind, and professional."""
 
+    def is_blocked_sender(self, sender_email: str, sender_name: str = '') -> Tuple[bool, str]:
+        """
+        Check if sender should be blocked (non-customer emails)
+        Returns (is_blocked, reason)
+        """
+        sender_email = sender_email.lower()
+        sender_name = sender_name.lower()
+
+        blocked_domains = [
+            'aliexpress.com',
+            'shopify.com',
+            'myshopify.com',
+            'noreply',
+            'no-reply',
+            'donotreply',
+            'notifications@',
+            'marketing@',
+            'sales@',
+            'support@shopify',
+            'alerts@'
+        ]
+
+        blocked_keywords = [
+            'aliexpress',
+            'shopify notification',
+            'shopify alert',
+            'automatic notification',
+            'system notification'
+        ]
+
+        for domain in blocked_domains:
+            if domain in sender_email:
+                return (True, f'Blocked domain: {domain}')
+
+        for keyword in blocked_keywords:
+            if keyword in sender_name or keyword in sender_email:
+                return (True, f'Blocked keyword: {keyword}')
+
+        return (False, '')
+
     def classify_email_intent(self, email_body: str, subject: str) -> Dict:
         """Classify the email to determine intent and filter spam"""
         email_lower = (email_body + " " + subject).lower()

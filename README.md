@@ -6,6 +6,7 @@ Automated customer support system for Shopify stores using Claude AI to respond 
 
 - ✅ Monitors Outlook inbox every 5 minutes
 - ✅ Automatically responds to 60-70% of customer emails
+- ✅ Blocks non-customer emails (AliExpress, Shopify, spam, sales)
 - ✅ Follows strict company policies
 - ✅ Flags complex issues for human review
 - ✅ Sends Slack notifications for items needing attention
@@ -113,12 +114,13 @@ See [master_implementation.md](master_implementation.md)
 ## How It Works
 
 1. **Email Monitoring**: Bot checks inbox every 5 minutes for unread emails
-2. **Spam Filtering**: Automatically filters out sales/marketing emails
-3. **Order Lookup**: Finds order info from Shopify using order number or email
-4. **AI Response**: Claude generates polite, policy-compliant response
-5. **Human Review**: Complex issues flagged and sent to Slack
-6. **Response Sent**: AI reply sent automatically for simple cases
-7. **Tracking**: All actions logged in database
+2. **Sender Filtering**: Blocks non-customer emails (AliExpress, Shopify notifications, sales, spam)
+3. **Spam Filtering**: Automatically filters out sales/marketing emails
+4. **Order Lookup**: Finds order info from Shopify using order number or email
+5. **AI Response**: Claude generates polite, policy-compliant response
+6. **Human Review**: Complex issues flagged and sent to Slack
+7. **Response Sent**: AI reply sent automatically for simple cases
+8. **Tracking**: All actions logged in database
 
 ## Policies
 
@@ -169,8 +171,9 @@ See [master_implementation.md](master_implementation.md) Part 8 for details.
 - Verify environment variables
 - Test Outlook authentication
 
-**Getting spam?**
-- Update spam keywords in `customer_support_agent.py`
+**Getting spam or non-customer emails?**
+- Update blocked domains in `customer_support_agent.py` → `is_blocked_sender()` method
+- Add keywords to `blocked_keywords` list
 
 **Wrong responses?**
 - Review system prompt in `customer_support_agent.py`

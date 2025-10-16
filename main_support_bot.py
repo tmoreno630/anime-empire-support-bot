@@ -163,6 +163,14 @@ class SupportBot:
         email_subject = email['subject']
         email_body = email['body']
 
+        is_blocked, block_reason = self.ai_agent.is_blocked_sender(customer_email, customer_name)
+        if is_blocked:
+            print(f"   🚫 BLOCKED: {block_reason}")
+            self.mark_email_processed(email_id, customer_email, email_subject,
+                                     False, False, None, 'blocked_sender')
+            self.email_handler.mark_as_read(email_id)
+            return True
+
         order_number = self.ai_agent.extract_order_number(email_subject + " " + email_body)
         order_context = None
 
